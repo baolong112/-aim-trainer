@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Aim Trainer - Nhẹ Tâm V2</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101114;color:#fff;font-family:Arial,sans-serif}
+#top{height:74px;background:#191a1e;display:flex;align-items:center;justify-content:space-around;border-bottom:1px solid #303138}
+.stat{text-align:center;min-width:55px}.n{font-size:19px;font-weight:700}.l{font-size:10px;color:#999;margin-top:2px}
+button{border:0;border-radius:10px;padding:9px 12px;font-weight:700;background:#fff;color:#111}
+#arena{height:calc(100% - 74px);position:relative;touch-action:none}
+#cross{position:absolute;left:50%;top:50%;width:28px;height:28px;transform:translate(-50%,-50%);pointer-events:none;opacity:.7}
+#cross:before,#cross:after{content:"";position:absolute;left:50%;top:50%;background:#fff;transform:translate(-50%,-50%)}
+#cross:before{width:28px;height:2px}.cross:after{width:2px;height:28px}
+#msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#aaa;line-height:1.7;pointer-events:none}
+.target{position:absolute;width:46px;height:46px;border:4px solid #fff;border-radius:50%;background:#e74b4b;transform:translate(-50%,-50%);box-shadow:0 0 0 2px #e74b4b}
+.head{position:absolute;width:15px;height:15px;border-radius:50%;background:#17181c;left:50%;top:50%;transform:translate(-50%,-50%)}
+.small{font-size:11px;color:#888;text-align:center;position:absolute;bottom:7px;width:100%;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="top">
+<div class="stat"><div class="n" id="score">0</div><div class="l">ĐIỂM</div></div>
+<div class="stat"><div class="n" id="hs">0</div><div class="l">HEADSHOT</div></div>
+<div class="stat"><div class="n" id="acc">100%</div><div class="l">CHÍNH XÁC</div></div>
+<div class="stat"><div class="n" id="stable">100%</div><div class="l">ỔN ĐỊNH</div></div>
+<div class="stat"><div class="n" id="time">30</div><div class="l">GIÂY</div></div>
+<button id="start">BẮT ĐẦU</button>
+</div>
+<div id="arena">
+<div id="cross"></div>
+<div id="msg">Bản V2 – Nhẹ tâm<br>Chạm vào tâm đen của bia để luyện headshot</div>
+<div class="small">Chế độ luyện tập offline · Không can thiệp vào Free Fire</div>
+</div>
+<script>
+const arena=document.getElementById('arena'),msg=document.getElementById('msg');
+const scoreE=document.getElementById('score'),hsE=document.getElementById('hs'),accE=document.getElementById('acc'),
+stableE=document.getElementById('stable'),timeE=document.getElementById('time'),start=document.getElementById('start');
+let score=0,hs=0,shots=0,miss=0,active=false,target=null,timer=null,endAt=0,lastX=0,lastY=0,motion=[];
+function update(){
+ scoreE.textContent=score;hsE.textContent=hs;
+ accE.textContent=(shots?Math.round(hs/shots*100):100)+'%';
+ let s=100-Math.min(100,miss*4);stableE.textContent=s+'%';
+}
+function spawn(){
+ if(!active)return;
+ if(target)target.remove();
+ target=document.createElement('div');target.className='target';
+ const pad=38,w=arena.clientWidth,h=arena.clientHeight;
+ target.style.left=(pad+Math.random()*(w-pad*2))+'px';
+ target.style.top=(pad+Math.random()*(h-pad*2))+'px';
+ const head=document.createElement('div');head.className='head';target.appendChild(head);
+ target.onpointerdown=e=>{
+   e.stopPropagation();shots++;hs++;score+=15;update();spawn();
+ };
+ arena.appendChild(target);
+}
+arena.addEventListener('pointermove',e=>{
+ if(!active)return;
+ const dx=e.clientX-lastX,dy=e.clientY-lastY;
+ if(lastX){const speed=Math.hypot(dx,dy);motion.push(speed);if(motion.length>12)motion.shift();}
+ lastX=e.clientX;lastY=e.clientY;
+});
+arena.addEventListener('pointerdown',e=>{
+ if(!active)return;
+ if(e.target.classList.contains('head'))return;
+ shots++;miss++;score=Math.max(0,score-2);update();
+});
+function game(){
+ score=hs=shots=miss=0;motion=[];lastX=lastY=0;active=true;endAt=Date.now()+30000;
+ update();timeE.textContent=30;msg.style.display='none';start.textContent='ĐANG CHƠI';spawn();
+ clearInterval(timer);timer=setInterval(()=>{
+   const left=Math.max(0,Math.ceil((endAt-Date.now())/1000));timeE.textContent=left;
+   if(left<=0){active=false;clearInterval(timer);if(target)target.remove();target=null;
+     msg.innerHTML='Hết giờ!<br>Điểm: '+score+' · Headshot: '+hs+'<br>Độ chính xác: '+(shots?Math.round(hs/shots*100):0)+'%';
+     msg.style.display='flex';start.textContent='CHƠI LẠI';
+   }
+ },100);
+}
+start.onclick=game;
+</script>
+</body>
+</html>
